@@ -1,35 +1,28 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"log"
 	"os"
 )
 
 type visitor int
 
-var fs = token.NewFileSet()
-
-func readFileLines(filename string, start int, end int) {
-	f, err := os.Open(filename)
-	if err != nil {
-		log.Println("err", err)
-	}
-	scanner := bufio.NewScanner(f)
-
-	lineNumber := 1
-	for scanner.Scan() {
-		line := scanner.Text()
-		if lineNumber >= start && lineNumber <= end {
-			fmt.Println("- ", line)
-		}
-		lineNumber++
-	}
+type Config struct {
+	Package string
+	Output  string
+	Append  bool
 }
+
+var (
+	fs   = token.NewFileSet()
+	Conf = Config{
+		Output: "output",
+		Append: false,
+	}
+)
 
 func (v visitor) Visit(node ast.Node) ast.Visitor {
 	if node == nil {
@@ -43,7 +36,12 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		start := fs.Position(t.Pos()).Line
 		end := fs.Position(t.End()).Line
 
-		readFileLines(fs.Position(t.Pos()).Filename, start, end)
+		ScanFunction(ReplaceConfig{
+			Filename:    "file.go",
+			Start:       start,
+			End:         end,
+			ReplaceType: "Note",
+		})
 
 		for _, comment := range t.Doc.List {
 			fmt.Println("comment is ", comment.Text)
@@ -54,13 +52,13 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 
 func main() {
 
+	fmt.Println("Generating code by lazygen")
 	fmt.Println("Args is ", os.Args)
-
 	var v visitor
 
 	f, err := parser.ParseFile(fs, "file.go", nil, parser.ParseComments)
-	packageName := f.Name
-	fmt.Println("package", packageName)
+	Conf.Package = f.Name.Name
+	fmt.Println("Config is ", Conf)
 
 	ast.Walk(v, f)
 

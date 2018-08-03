@@ -8,7 +8,6 @@ type Note struct {
 }
 
 //go:generate lazygen -name=model
-// kek
 func (note Note) Test() {
 	fmt.Println("note is ", note)
 }
