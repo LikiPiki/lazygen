@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"log"
 	"os"
 )
 
@@ -33,24 +34,35 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 	switch t := node.(type) {
 	case *ast.FuncDecl:
 
-		fmt.Println("Func finded", t.Name)
-
 		start := fs.Position(t.Pos()).Line
 		end := fs.Position(t.End()).Line
 
 		if t.Doc != nil {
 			for _, comment := range t.Doc.List {
 				fmt.Println("comment is ", comment.Text)
+				finded, types := CheckCommentParams(comment.Text)
+				fmt.Println("types is ", types)
+				if !finded {
+					log.Println("Cant find -type param....")
+				}
+				// @TODO refactor to reciver
 				ok, pos := FindValidFunction(fs, comment)
 				if ok {
+					find, curVar, curParam := FindFunctionParams(t)
+					fmt.Println("Finded", find, curVar, curParam)
 					fmt.Println("Function finded", t.Name, pos)
+					if find {
 
-					ScanFunction(ReplaceConfig{
-						Filename:    "file.go",
-						Start:       start,
-						End:         end,
-						ReplaceType: "Note",
-					})
+						ScanFunction(ReplaceConfig{
+							Filename:    "file.go",
+							Start:       start,
+							End:         end,
+							CurrentType: curParam,
+							CurrentVar:  curVar,
+							ReplaceType: types[0],
+						})
+						break
+					}
 				}
 			}
 		}

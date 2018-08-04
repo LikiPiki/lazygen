@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"go/ast"
 	"go/token"
 	"log"
@@ -16,12 +15,13 @@ type ReplaceConfig struct {
 	Start       int
 	End         int
 	CurrentType string
+	CurrentVar  string
 	ReplaceType string
 }
 
 func ScanFunction(config ReplaceConfig) {
 	lines := ReadFileLines(config.Filename, config.Start, config.End)
-	line := ReplaceFuncType(lines, config.ReplaceType)
+	line := ReplaceFuncType(lines, config)
 	WriteResultToFile(line)
 }
 
@@ -43,11 +43,11 @@ func ReadFileLines(filename string, start int, end int) []string {
 	return lines
 }
 
-func ReplaceFuncType(lines []string, replaceType string) string {
+func ReplaceFuncType(lines []string, config ReplaceConfig) string {
 	file := strings.Join(lines, "\n")
 	replacements := map[string]string{
-		replaceType:                  "Model",
-		strings.ToLower(replaceType): "model",
+		config.CurrentType: config.ReplaceType,
+		config.CurrentVar:  strings.ToLower(config.ReplaceType),
 	}
 
 	for key, value := range replacements {
@@ -81,11 +81,37 @@ type CommentConf struct {
 	Pos      int
 }
 
+func CheckCommentParams(comment string) (bool, []string) {
+	// find one param
+	r := regexp.MustCompile(`-type=(\w+)`)
+	// todo find aray params like -type="Note, Model, Some"
+	matches := r.FindStringSubmatch(comment)
+	if len(matches) > 1 {
+		param := matches[len(matches)-1]
+		return true, []string{param}
+	}
+	return false, nil
+}
+
 func FindValidFunction(fs *token.FileSet, comment *ast.Comment) (bool, token.Position) {
 	r := regexp.MustCompile("lazygen")
 	if r.Match([]byte(comment.Text)) {
-		fmt.Println("Func is valid")
 		return true, fs.Position(comment.Pos())
 	}
 	return false, token.Position{}
+}
+
+func FindFunctionParams(node *ast.FuncDecl) (bool, string, string) {
+	var currentType, currentVar string
+	if node.Recv != nil {
+		list := node.Recv.List
+		if list != nil && len(list) > 0 {
+			for _, rec := range list {
+				currentVar = rec.Names[0].Name
+				currentType = rec.Type.(*ast.Ident).Name
+			}
+			return true, currentVar, currentType
+		}
+	}
+	return false, "", ""
 }
