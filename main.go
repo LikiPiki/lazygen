@@ -17,7 +17,9 @@ type Config struct {
 }
 
 var (
-	fs   = token.NewFileSet()
+	fs = token.NewFileSet()
+
+	// Conf - lazygen  main config
 	Conf = Config{
 		Output: "output",
 		Append: false,
@@ -36,15 +38,21 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		start := fs.Position(t.Pos()).Line
 		end := fs.Position(t.End()).Line
 
-		ScanFunction(ReplaceConfig{
-			Filename:    "file.go",
-			Start:       start,
-			End:         end,
-			ReplaceType: "Note",
-		})
+		if t.Doc != nil {
+			for _, comment := range t.Doc.List {
+				fmt.Println("comment is ", comment.Text)
+				ok, pos := FindValidFunction(fs, comment)
+				if ok {
+					fmt.Println("Function finded", t.Name, pos)
 
-		for _, comment := range t.Doc.List {
-			fmt.Println("comment is ", comment.Text)
+					ScanFunction(ReplaceConfig{
+						Filename:    "file.go",
+						Start:       start,
+						End:         end,
+						ReplaceType: "Note",
+					})
+				}
+			}
 		}
 	}
 	return v
@@ -57,13 +65,14 @@ func main() {
 	var v visitor
 
 	f, err := parser.ParseFile(fs, "file.go", nil, parser.ParseComments)
-	Conf.Package = f.Name.Name
-	fmt.Println("Config is ", Conf)
-
-	ast.Walk(v, f)
 
 	if err != nil {
 		panic(err)
 	}
+
+	Conf.Package = f.Name.Name
+	fmt.Println("Config is ", Conf)
+
+	ast.Walk(v, f)
 
 }

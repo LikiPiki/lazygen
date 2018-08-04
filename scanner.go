@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"go/ast"
+	"go/token"
 	"log"
 	"os"
 	"regexp"
@@ -34,7 +36,6 @@ func ReadFileLines(filename string, start int, end int) []string {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if lineNumber >= start && lineNumber <= end {
-			fmt.Println("- ", line)
 			lines = append(lines, line)
 		}
 		lineNumber++
@@ -50,17 +51,19 @@ func ReplaceFuncType(lines []string, replaceType string) string {
 	}
 
 	for key, value := range replacements {
-		r := regexp.MustCompile(`[^ ()";{}\n\t]?` + key + `[^ ()";{}\n\t]?`)
-		file = r.ReplaceAllString(file, value)
-	}
+		r := regexp.MustCompile(`[ ()";{}\n\t]` + key + `[ ()";{}\n\t]`)
+		r2 := regexp.MustCompile(key)
 
-	fmt.Println("Result is \n", file)
+		file = r.ReplaceAllStringFunc(file, func(match string) string {
+			return r2.ReplaceAllString(match, value)
+		})
+	}
 
 	return file
 }
 
 func WriteResultToFile(line string) {
-	f, err := os.Create(Conf.Output + "_lazygen.go")
+	f, err := os.Create(Conf.Output + "_lazygen.txt")
 	if err != nil {
 		log.Println(err)
 	}
@@ -70,4 +73,19 @@ func WriteResultToFile(line string) {
 	f.Write([]byte("package " + Conf.Package + "\n"))
 	f.Write([]byte("\n"))
 	f.Write([]byte(line))
+}
+
+type CommentConf struct {
+	Text     string
+	Filename string
+	Pos      int
+}
+
+func FindValidFunction(fs *token.FileSet, comment *ast.Comment) (bool, token.Position) {
+	r := regexp.MustCompile("lazygen")
+	if r.Match([]byte(comment.Text)) {
+		fmt.Println("Func is valid")
+		return true, fs.Position(comment.Pos())
+	}
+	return false, token.Position{}
 }
