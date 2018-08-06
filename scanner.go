@@ -53,7 +53,7 @@ func ReplaceFuncType(lines []string, config ReplaceConfig) string {
 	}
 
 	for key, value := range replacements {
-		r := regexp.MustCompile(`[ ()";{}\n\t]` + key + `[ ()";{}\n\t]`)
+		r := regexp.MustCompile(`[ ()";.{}\n\t]` + key + `[ ()";.{}\n\t]`)
 		r2 := regexp.MustCompile(key)
 
 		file = r.ReplaceAllStringFunc(file, func(match string) string {

@@ -2,23 +2,15 @@ package main
 
 import "fmt"
 
-type Note struct {
-	Name    string
-	Content string
+type Cat struct {
+	Name string
 }
 
-//lazygen -type=Model
-func (note Note) Test() {
-	fmt.Println("note is ", note)
-	//Coment is somethingNote
+type Dog struct {
+	Name string
 }
 
-func (note Note) anoterfunc(test string) {
-	fmt.Println("test here", note)
-}
-
-type bytes byte
-
-func anoterfunc2(test string) {
-	fmt.Println("test here")
+//lazygen -type=Cat
+func (dog Dog) SayHello() {
+	fmt.Println("Hello", dog.Name)
 }
