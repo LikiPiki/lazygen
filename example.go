@@ -7,7 +7,7 @@ type Note struct {
 	Content string
 }
 
-//go:generate lazygen -type=Content
+//lazygen -type=Model
 func (note Note) Test() {
 	fmt.Println("note is ", note)
 	//Coment is somethingNote

@@ -6,14 +6,13 @@ import (
 	"go/parser"
 	"go/token"
 	"log"
-	"os"
 )
 
 type visitor int
 
 type Config struct {
+	File    FileConf
 	Package string
-	Output  string
 	Append  bool
 }
 
@@ -21,10 +20,7 @@ var (
 	fs = token.NewFileSet()
 
 	// Conf - lazygen  main config
-	Conf = Config{
-		Output: "output",
-		Append: false,
-	}
+	Conf = Config{}
 )
 
 func (v visitor) Visit(node ast.Node) ast.Visitor {
@@ -39,9 +35,8 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 
 		if t.Doc != nil {
 			for _, comment := range t.Doc.List {
-				fmt.Println("comment is ", comment.Text)
 				finded, types := CheckCommentParams(comment.Text)
-				fmt.Println("types is ", types)
+				fmt.Println("Finded type is ", types)
 				if !finded {
 					log.Println("Cant find -type param....")
 				}
@@ -54,7 +49,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 					if find {
 
 						ScanFunction(ReplaceConfig{
-							Filename:    "file.go",
+							File:        Conf.File,
 							Start:       start,
 							End:         end,
 							CurrentType: curParam,
@@ -65,6 +60,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 					}
 				}
 			}
+			fmt.Println("---------------------")
 		}
 	}
 	return v
@@ -72,19 +68,23 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 
 func main() {
 
+	files := WalkFiles(".")
+
 	fmt.Println("Generating code by lazygen")
-	fmt.Println("Args is ", os.Args)
-	var v visitor
+	// Parsing flags
 
-	f, err := parser.ParseFile(fs, "file.go", nil, parser.ParseComments)
+	for _, file := range files {
+		var v visitor
+		Conf.File = file
+		f, err := parser.ParseFile(fs, file.Filename, nil, parser.ParseComments)
 
-	if err != nil {
-		panic(err)
+		if err != nil {
+			panic(err)
+		}
+
+		Conf.Package = f.Name.Name
+
+		ast.Walk(v, f)
 	}
-
-	Conf.Package = f.Name.Name
-	fmt.Println("Config is ", Conf)
-
-	ast.Walk(v, f)
 
 }

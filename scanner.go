@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"go/ast"
 	"go/token"
 	"log"
@@ -11,7 +12,7 @@ import (
 )
 
 type ReplaceConfig struct {
-	Filename    string
+	File        FileConf
 	Start       int
 	End         int
 	CurrentType string
@@ -20,7 +21,7 @@ type ReplaceConfig struct {
 }
 
 func ScanFunction(config ReplaceConfig) {
-	lines := ReadFileLines(config.Filename, config.Start, config.End)
+	lines := ReadFileLines(config.File.Filename, config.Start, config.End)
 	line := ReplaceFuncType(lines, config)
 	WriteResultToFile(line)
 }
@@ -45,6 +46,7 @@ func ReadFileLines(filename string, start int, end int) []string {
 
 func ReplaceFuncType(lines []string, config ReplaceConfig) string {
 	file := strings.Join(lines, "\n")
+	fmt.Println("Func is -> \n", file)
 	replacements := map[string]string{
 		config.CurrentType: config.ReplaceType,
 		config.CurrentVar:  strings.ToLower(config.ReplaceType),
@@ -63,7 +65,7 @@ func ReplaceFuncType(lines []string, config ReplaceConfig) string {
 }
 
 func WriteResultToFile(line string) {
-	f, err := os.Create(Conf.Output + "_lazygen.txt")
+	f, err := os.Create(strings.Replace(Conf.File.Filename, ".go", "_lazygen.go", 1))
 	if err != nil {
 		log.Println(err)
 	}
